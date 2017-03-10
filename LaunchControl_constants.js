@@ -4,15 +4,26 @@ var HIGHEST_CC = 48;
 var NUM_TRACKS = 8;
 var NUM_SENDS = 2;
 var NUM_SCENES = 32;
-var MAX_CHILD_TRACKS = 8;
+var MAX_CHILD_TRACKS = 16;
 
-var PlaybackStateColour =
+var Colour = // Novation are from the UK
 {
-	PlaybackState.STOPPED:Colour.OFF,
-	PlaybackState.STOPQUEUED:Colour.YELLOW_LOW,
-	PlaybackState.QUEUED:Colour.GREEN_FULL,
-	PlaybackState.PLAYING:Colour.GREEN_LOW
-}
+   OFF:12,
+   RED_LOW:13,
+   RED_FULL:15,
+   AMBER_LOW:29,
+   AMBER_FULL:63,
+   YELLOW_FULL:62,
+   YELLOW_LOW: 0x2D,
+   ORANGE:39,
+   LIME:0x3D,
+   GREEN_LOW:28,
+   GREEN_FULL:60,
+   RED_FLASHING:11,
+   AMBER_FLASHING:59,
+   YELLOW_FLASHING:58,
+   GREEN_FLASHING:56
+};
 
 var PlaybackState =
 {
@@ -109,25 +120,6 @@ var FactoryPagePads =
 	Page6:157,
 	Page7:158,
 	Page8:159
-};
-
-var Colour = // Novation are from the UK
-{
-   OFF:12,
-   RED_LOW:13,
-   RED_FULL:15,
-   AMBER_LOW:29,
-   AMBER_FULL:63,
-   YELLOW_FULL:62,
-   YELLOW_LOW: 0x2D,
-   ORANGE:39,
-   LIME:0x3D,
-   GREEN_LOW:28,
-   GREEN_FULL:60,
-   RED_FLASHING:11,
-   AMBER_FLASHING:59,
-   YELLOW_FLASHING:58,
-   GREEN_FLASHING:56
 };
 
 var LED =

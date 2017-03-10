@@ -6,7 +6,7 @@ host.addDeviceNameBasedDiscoveryPair(["Launch Control"], ["Launch Control"]);
 
 //Load LaunchControl constants containing the status for pages and other constant variables
 load("LaunchControl_constants.js");
-load("LaunchControl_common.js");
+//load("LaunchControl_common.js");
 
 var buttonMode = ButtonMode.STOP;
 
@@ -46,7 +46,10 @@ var soloStates =
 	false
 ];
 
+var playbackStateColour = {};
+
 var childTracks = {};
+var childTrackCount = {};
 
 function init()
 {
@@ -55,37 +58,27 @@ function init()
 	//noteInput = host.getMidiInPort(0).createNoteInput("Launch Control", "80????", "90????");
 	//noteInput.setShouldConsumeEvents(false);
 
-	// create a transport section for on Factory Preset 1
-	//transport = host.createTransportSection();
-
 	// create a trackbank (arguments are tracks, sends, scenes)
 	trackBank = host.createMasterTrack(0).createSiblingsTrackBank(NUM_TRACKS, NUM_SENDS, NUM_SCENES, false, false);
-
-	/*
-	// Make CCs 21-48 freely mappable for all 16 Channels
-	userControls = host.createUserControlsSection((HIGHEST_CC - LOWEST_CC + 1)*16);
-
-	for (var i = LOWEST_CC; i <= HIGHEST_CC; i++)
-	{
-			for (var j = 1; j <= 16; j++)
-            {
-				 // Create the index variable c
-				 var c = i - LOWEST_CC + (j-1) * (HIGHEST_CC-LOWEST_CC+1);
-				 // Set a label/name for each userControl
-				 userControls.getControl(c).setLabel("CC " + i + " - Channel " + j);
-			}
-	}
-	*/
+	deviceCursor = trackBank.getTrack(0).createCursorDevice("Primary");
 
 	var slotBanks = {};
 
+	playbackStateColour[PlaybackState.STOPPED] = Colour.OFF;
+	playbackStateColour[PlaybackState.PLAYING] = Colour.GREEN_LOW;
+	playbackStateColour[PlaybackState.STOPQUEUED] = Colour.YELLOW_FULL;
+	playbackStateColour[PlaybackState.QUEUED] = Colour.GREEN_FULL;
+
 	for (var i = 0; i < NUM_TRACKS; i++)
 	{
-		childTracks[i] = trackBank.getChannel(i).createTrackBank(MAX_CHILD_TRACKS, 0, 0, false, false);
-		slotBanks[i] = trackBank.getChannel(i).getClipLauncherSlots();
+		childTracks[i] = trackBank.getTrack(i).createTrackBank(MAX_CHILD_TRACKS, 0, 0, false);
+		childTracks[i].addChannelCountObserver(childrenCountObserver(i));
+
+		slotBanks[i] = trackBank.getTrack(i).getClipLauncherSlots();
 		slotBanks[i].addPlaybackStateObserver(playbackObserver(i));
-		trackBank.getChannel(i).getMute().addValueObserver(muteObserver(i));
-		trackBank.getChannel(i).getSolo().addValueObserver(soloObserver(i));
+
+		trackBank.getTrack(i).getMute().addValueObserver(muteObserver(i));
+		trackBank.getTrack(i).getSolo().addValueObserver(soloObserver(i));
 	}
 }
 
@@ -96,7 +89,7 @@ function updatePads()
 		if (buttonMode == ButtonMode.STOP)
 		{
 			var state = playbackStates[i];
-			sendMidi(UserPagePads.Page1, ButtonReverseMap[i], PlaybackStateColour[state]);
+			sendMidi(UserPagePads.Page1, ButtonReverseMap[i], playbackStateColour[state]);
 		}
 		else if (buttonMode == ButtonMode.MUTE)
 		{
@@ -130,6 +123,16 @@ function updatePads()
 		sendMidi(SideButton.STATUS, SideButton.LEFT, Colour.OFF);
 }
 
+var childrenCountObserver = function(channel)
+{
+    var ch = channel;
+    return function (count)
+		{
+			childTrackCount[ch] = count;
+			//println(ch + ", children: " + count);
+		}
+};
+
 var playbackObserver = function(channel)
 {
     var ch = channel;
@@ -155,7 +158,7 @@ var playbackObserver = function(channel)
 
 			var state = playbackStates[ch];
 			if (buttonMode == ButtonMode.STOP)
-				sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], PlaybackStateColour[state]);
+				sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], playbackStateColour[state]);
 		}
 };
 
@@ -205,14 +208,7 @@ function processSideButtons(status, data1, data2)
 {
 	// User Preset 1, side buttons change mode
 	// Hold buttons for mute or solo mode, release to go back to stop mode
-	/*if (status == SideButton.STATUS && data1 == SideButton.UP)
-	{
-		//println("stop mode\n");
-		buttonMode = ButtonMode.STOP;
-		sendMidi(status, data1, Colour.RED_FULL);
-		updatePads();
-	}
-	else*/ if (status == SideButton.STATUS && data1 == SideButton.RIGHT)
+	if (status == SideButton.STATUS && data1 == SideButton.RIGHT)
 	{
 		//println("mute mode\n");
 		if (data2 == 127)
@@ -238,37 +234,12 @@ function processSideButtons(status, data1, data2)
 		}
 		updatePads();
 	}
-	/*else if (status == SideButton.STATUS && data1 == SideButton.LEFT)
-	{
-		//println("user mode\n");
-		if (data2 == 127)
-		{
-			buttonMode = ButtonMode.USER;
-		}
-		else if (data2 == 0 && buttonMode == ButtonMode.USER)
-		{
-			buttonMode = ButtonMode.STOP;
-		}
-		updatePads();
-	}*/
 }
 
 function onMidi(status, data1, data2)
 {
-
-	printMidi(status, data1, data2);
-	println(MIDIChannel(status));
-
-	/*
-	// make Pads green when pressed in user mode
-	if (data1 >= 9 && data1 <= 28 && data2 == 127 && buttonMode == ButtonMode.USER)
-	{
-		sendMidi(status, data1, Colour.GREEN_FULL);
-	}
-	else if (data1 >= 9 && data1 <= 28 && data2 == 0 && buttonMode == ButtonMode.USER)
-	{
-		sendMidi(status, data1, Colour.OFF);
-	}*/
+	//printMidi(status, data1, data2);
+	//println(MIDIChannel(status));
 
 	processSideButtons(status, data1, data2);
 
@@ -294,48 +265,27 @@ function onMidi(status, data1, data2)
 	{
 		if (data1 >= 21 && data1 <= 28)
 		{
+			//println("upper knob");
 			var channelIdx = data1 - 21;
 			var macro = 0;
 		}
 		else if (data1 >= 41 && data1 <= 48)
 		{
+			//println("lower knob");
 			var channelIdx = data1 - 41;
 			var macro = 1;
 		}
 
-		trackBank.getChannel(channelIdx).getPrimaryDevice().getMacro(macro).getAmount().set(data2, 128);
-		for (var i = 0; i <= MAX_CHILD_TRACKS; i++)
+		deviceCursor.selectFirstInChannel(trackBank.getChannel(channelIdx));
+		deviceCursor.getMacro(macro).getAmount().set(data2, 128);
+
+		for (var i = 0; i < childTrackCount[channelIdx]; i++)
 		{
-			childTracks[channelIdx].getChannel(i).getPrimaryDevice().getMacro(macro).getAmount().set(data2, 128);
+			var child_channel = childTracks[channelIdx].getChannel(i);
+			deviceCursor.selectFirstInChannel(child_channel);
+			deviceCursor.getMacro(macro).getAmount().set(data2, 128);
 		}
 	}
-
-    /*
-	// Factory Preset 1 = Setup knobs to control Macros and Parameters
-	if (status == FactoryPageKnobs.Page1)
-	{
-		if (data1 >= 21 && data1 <= 28)
-		{
-			var knobIndexTop = data1 - 21;
-			primaryDevice.getParameter(knobIndexTop).set(data2, 128);
-		}
-		else if (data1 >= 41 && data1 <= 48)
-		{
-			var knobIndexBottom = data1 - 41;
-			primaryDevice.getMacro(knobIndexBottom).getAmount().set(data2, 128);
-		}
-	}
-
-	// If not on a Factory Bank already assigned then make the knobs assignable
-	if (isChannelController(status))
-	{
-		if (data2 != 127 && data1 >= LOWEST_CC && data1 <= HIGHEST_CC)
-		{
-			var index = data1 - LOWEST_CC + (HIGHEST_CC * MIDIChannel(status));
-			userControls.getControl(index).set(data2, 128);
-		}
-
-   }*/
 }
 
 //Works
