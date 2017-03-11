@@ -15,5 +15,5 @@ This Bitwig Studio controller script is very simple and does just a few things:
 - While holding the RIGHT directional button you can use the pads to mute tracks.
 - While holding the DOWN button you can use them to solo tracks.
 
-The script was tested only with Bitwig 1.3.x and need the Launch Control to be
+The script was tested only with Bitwig 1.3.x and needs the Launch Control to be
 in 'User 1' mode.
