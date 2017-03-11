@@ -6,7 +6,6 @@ host.addDeviceNameBasedDiscoveryPair(["Launch Control"], ["Launch Control"]);
 
 //Load LaunchControl constants containing the status for pages and other constant variables
 load("LaunchControl_constants.js");
-//load("LaunchControl_common.js");
 
 var buttonMode = ButtonMode.STOP;
 
@@ -46,8 +45,7 @@ var soloStates =
 	false
 ];
 
-var playbackStateColour = {};
-
+var deviceCursors = {};
 var childTracks = {};
 var childTrackCount = {};
 
@@ -55,19 +53,11 @@ function init()
 {
 	// Setup MIDI in stuff
 	host.getMidiInPort(0).setMidiCallback(onMidi);
-	//noteInput = host.getMidiInPort(0).createNoteInput("Launch Control", "80????", "90????");
-	//noteInput.setShouldConsumeEvents(false);
 
 	// create a trackbank (arguments are tracks, sends, scenes)
 	trackBank = host.createMasterTrack(0).createSiblingsTrackBank(NUM_TRACKS, NUM_SENDS, NUM_SCENES, false, false);
-	deviceCursor = trackBank.getTrack(0).createCursorDevice("Primary");
 
 	var slotBanks = {};
-
-	playbackStateColour[PlaybackState.STOPPED] = Colour.OFF;
-	playbackStateColour[PlaybackState.PLAYING] = Colour.GREEN_LOW;
-	playbackStateColour[PlaybackState.STOPQUEUED] = Colour.YELLOW_FULL;
-	playbackStateColour[PlaybackState.QUEUED] = Colour.GREEN_FULL;
 
 	for (var i = 0; i < NUM_TRACKS; i++)
 	{
@@ -76,6 +66,8 @@ function init()
 
 		slotBanks[i] = trackBank.getTrack(i).getClipLauncherSlots();
 		slotBanks[i].addPlaybackStateObserver(playbackObserver(i));
+
+		deviceCursors[i] = trackBank.getTrack(i).createCursorDevice("Primary");
 
 		trackBank.getTrack(i).getMute().addValueObserver(muteObserver(i));
 		trackBank.getTrack(i).getSolo().addValueObserver(soloObserver(i));
@@ -89,38 +81,20 @@ function updatePads()
 		if (buttonMode == ButtonMode.STOP)
 		{
 			var state = playbackStates[i];
-			sendMidi(UserPagePads.Page1, ButtonReverseMap[i], playbackStateColour[state]);
+			sendMidi(UserPagePads.Page1, ButtonReverseMap[i], PlaybackStateColour[state]);
 		}
 		else if (buttonMode == ButtonMode.MUTE)
 		{
-			if (muteStates[i] == true)
-				sendMidi(UserPagePads.Page1, ButtonReverseMap[i], Colour.RED_FULL);
-			else
-				sendMidi(UserPagePads.Page1, ButtonReverseMap[i], Colour.OFF);
+			sendMidi(UserPagePads.Page1, ButtonReverseMap[i], MuteColour[muteStates[i] ? 1 : 0]);
 		}
 		else if (buttonMode == ButtonMode.SOLO)
 		{
-			if (soloStates[i] == true)
-				sendMidi(UserPagePads.Page1, ButtonReverseMap[i], Colour.YELLOW_FULL);
-			else
-				sendMidi(UserPagePads.Page1, ButtonReverseMap[i], Colour.OFF);
+			sendMidi(UserPagePads.Page1, ButtonReverseMap[i], SoloColour[soloStates[i] ? 1 : 0]);
 		}
 	}
 
-	if (buttonMode == ButtonMode.SOLO)
-		sendMidi(SideButton.STATUS, SideButton.DOWN, Colour.RED_FULL);
-	else
-		sendMidi(SideButton.STATUS, SideButton.DOWN, Colour.OFF);
-
-	if (buttonMode == ButtonMode.MUTE)
-		sendMidi(SideButton.STATUS, SideButton.RIGHT, Colour.RED_FULL);
-	else
-		sendMidi(SideButton.STATUS, SideButton.RIGHT, Colour.OFF);
-
-	if (buttonMode == ButtonMode.USER)
-		sendMidi(SideButton.STATUS, SideButton.LEFT, Colour.RED_FULL);
-	else
-		sendMidi(SideButton.STATUS, SideButton.LEFT, Colour.OFF);
+	sendMidi(SideButton.STATUS, SideButton.DOWN, SideButtonColour[buttonMode == ButtonMode.SOLO ? 1 : 0]);
+	sendMidi(SideButton.STATUS, SideButton.RIGHT, SideButtonColour[buttonMode == ButtonMode.MUTE ? 1 : 0]);
 }
 
 var childrenCountObserver = function(channel)
@@ -129,10 +103,10 @@ var childrenCountObserver = function(channel)
     return function (count)
 		{
 			if (count > MAX_CHILD_TRACKS)
+			{
 				count = MAX_CHILD_TRACKS;
-				
+			}
 			childTrackCount[ch] = count;
-			//println(ch + ", children: " + count);
 		}
 };
 
@@ -148,7 +122,7 @@ var playbackObserver = function(channel)
 			}
 			else if (state == 0 && queued)
 			{
-				playbackStates[ch] = PlaybackState.STOPQUEUED;
+				playbackStates[ch] = PlaybackState.STOPDUE;
 			}
 			else if (state == 1 && queued)
 			{
@@ -161,7 +135,9 @@ var playbackObserver = function(channel)
 
 			var state = playbackStates[ch];
 			if (buttonMode == ButtonMode.STOP)
-				sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], playbackStateColour[state]);
+			{
+				sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], PlaybackStateColour[state]);
+			}
 		}
 };
 
@@ -171,18 +147,11 @@ var muteObserver = function(channel)
     var ch = channel;
     return function (mute)
 		{
-			if (mute)
+			muteStates[ch] = mute;
+			if (buttonMode == ButtonMode.MUTE)
 			{
-				muteStates[ch] = true;
-				if (buttonMode == ButtonMode.MUTE)
-					sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], Colour.RED_FULL);
-			}
-			else
-			{
-
-				muteStates[ch] = false;
-				if (buttonMode == ButtonMode.MUTE)
-					sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], Colour.OFF);
+				println(mute);
+				sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], MuteColour[mute ? 1 : 0]);
 			}
 		}
 };
@@ -192,17 +161,10 @@ var soloObserver = function(channel)
     var ch = channel;
     return function (solo)
 		{
-			if (solo)
+			soloStates[ch] = solo;
+			if (buttonMode == ButtonMode.SOLO)
 			{
-				soloStates[ch] = true;
-				if (buttonMode == ButtonMode.SOLO)
-					sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], Colour.YELLOW_FULL);
-			}
-			else
-			{
-				soloStates[ch] = false;
-				if (buttonMode == ButtonMode.SOLO)
-					sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], Colour.OFF);
+				sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], SoloColour[solo ? 1 : 0]);
 			}
 		}
 };
@@ -264,29 +226,19 @@ function onMidi(status, data1, data2)
 	}
 
 	// Knobs control first two macros of each channel
-	if (status == UserPageKnobs.Page1)
+	if (status == UserPageKnobs.Page1 && KnobMap[data1] >= 0 && KnobMap[data1] <= 15)
 	{
-		if (data1 >= 21 && data1 <= 28)
-		{
-			//println("upper knob");
-			var channelIdx = data1 - 21;
-			var macro = 0;
-		}
-		else if (data1 >= 41 && data1 <= 48)
-		{
-			//println("lower knob");
-			var channelIdx = data1 - 41;
-			var macro = 1;
-		}
+		var channelIdx = KnobMap[data1] % 8;
+		var macro = KnobMap[data1] / 8;
 
-		deviceCursor.selectFirstInChannel(trackBank.getChannel(channelIdx));
-		deviceCursor.getMacro(macro).getAmount().set(data2, 128);
+		deviceCursors[channelIdx].selectFirstInChannel(trackBank.getChannel(channelIdx));
+		deviceCursors[channelIdx].getMacro(macro).getAmount().set(data2, 128);
 
 		for (var i = 0; i < childTrackCount[channelIdx]; i++)
 		{
 			var child_channel = childTracks[channelIdx].getChannel(i);
-			deviceCursor.selectFirstInChannel(child_channel);
-			deviceCursor.getMacro(macro).getAmount().set(data2, 128);
+			deviceCursors[channelIdx].selectFirstInChannel(child_channel);
+			deviceCursors[channelIdx].getMacro(macro).getAmount().set(data2, 128);
 		}
 	}
 }

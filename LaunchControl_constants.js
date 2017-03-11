@@ -28,10 +28,36 @@ var Colour = // Novation are from the UK
 var PlaybackState =
 {
 	QUEUED:0,
-	STOPQUEUED:1,
+	STOPDUE:1,
 	STOPPED:2,
 	PLAYING:3,
 };
+
+var PlaybackStateColour	=
+[
+	Colour.GREEN_FULL,
+	Colour.YELLOW_FULL,
+	Colour.OFF,
+	Colour.GREEN_LOW
+];
+
+var MuteColour =
+[
+	Colour.OFF,
+	Colour.RED_FULL
+];
+
+var SoloColour =
+[
+	Colour.OFF,
+	Colour.YELLOW_FULL
+];
+
+var SideButtonColour =
+[
+	Colour.OFF,
+	Colour.RED_FULL
+];
 
 var SideButton =
 {
@@ -60,6 +86,26 @@ var ButtonMap =
 	'26':5,
 	'27':6,
 	'28':7
+};
+
+var KnobMap =
+{
+	'21':0,
+	'22':1,
+	'23':2,
+	'24':3,
+	'25':4,
+	'26':5,
+	'27':6,
+	'28':7,
+	'41':8,
+	'42':9,
+	'43':10,
+	'44':11,
+	'45':12,
+	'46':13,
+	'47':14,
+	'48':15,
 };
 
 var ButtonReverseMap =
