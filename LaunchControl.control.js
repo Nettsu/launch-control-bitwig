@@ -128,6 +128,9 @@ var childrenCountObserver = function(channel)
     var ch = channel;
     return function (count)
 		{
+			if (count > MAX_CHILD_TRACKS)
+				count = MAX_CHILD_TRACKS;
+				
 			childTrackCount[ch] = count;
 			//println(ch + ", children: " + count);
 		}
