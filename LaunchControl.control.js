@@ -45,9 +45,10 @@ var soloStates =
 	false
 ];
 
-var deviceCursors = {};
-var childTracks = {};
-var childTrackCount = {};
+var deviceCursors 	= [];
+var childTracks 	= [];
+var childTrackCount = [];
+var childDevices 	= [];
 
 function init()
 {
@@ -57,7 +58,7 @@ function init()
 	// create a trackbank (arguments are tracks, sends, scenes)
 	trackBank = host.createMasterTrack(0).createSiblingsTrackBank(NUM_TRACKS, NUM_SENDS, NUM_SCENES, false, false);
 
-	var slotBanks = {};
+	var slotBanks = [];
 
 	for (var i = 0; i < NUM_TRACKS; i++)
 	{
@@ -67,7 +68,16 @@ function init()
 		slotBanks[i] = trackBank.getTrack(i).getClipLauncherSlots();
 		slotBanks[i].addPlaybackStateObserver(playbackObserver(i));
 
-		deviceCursors[i] = trackBank.getTrack(i).createCursorDevice("Primary");
+		// create main device cursor for the track
+		deviceCursors[i] = trackBank.getTrack(i).createCursorDevice("Primary" + i);
+
+		// create child track cursors for the track, one for each potential child
+		var childDevicesArray = [];
+		for (var j = 0; j < MAX_CHILD_TRACKS; j++)
+		{
+			childDevicesArray[j] = trackBank.getTrack(i).createCursorDevice("Child" + i + ":" + j);
+		}
+		childDevices[i] = childDevicesArray;
 
 		trackBank.getTrack(i).getMute().addValueObserver(muteObserver(i));
 		trackBank.getTrack(i).getSolo().addValueObserver(soloObserver(i));
@@ -76,7 +86,7 @@ function init()
 
 function updatePads()
 {
-    for(var i = 0; i < 8; i++)
+    for (var i = 0; i < 8; i++)
     {
 		if (buttonMode == ButtonMode.STOP)
 		{
@@ -107,6 +117,11 @@ var childrenCountObserver = function(channel)
 				count = MAX_CHILD_TRACKS;
 			}
 			childTrackCount[ch] = count;
+			for (var i = 0; i < count; i++)
+			{
+				var child_channel = childTracks[ch].getChannel(i);
+				childDevices[ch][i].selectFirstInChannel(child_channel);
+			}
 		}
 };
 
@@ -231,14 +246,10 @@ function onMidi(status, data1, data2)
 		var channelIdx = KnobMap[data1] % 8;
 		var macro = KnobMap[data1] / 8;
 
-		deviceCursors[channelIdx].selectFirstInChannel(trackBank.getChannel(channelIdx));
 		deviceCursors[channelIdx].getMacro(macro).getAmount().set(data2, 128);
-
 		for (var i = 0; i < childTrackCount[channelIdx]; i++)
 		{
-			var child_channel = childTracks[channelIdx].getChannel(i);
-			deviceCursors[channelIdx].selectFirstInChannel(child_channel);
-			deviceCursors[channelIdx].getMacro(macro).getAmount().set(data2, 128);
+			childDevices[channelIdx][i].getMacro(macro).getAmount().set(data2, 128);
 		}
 	}
 }
