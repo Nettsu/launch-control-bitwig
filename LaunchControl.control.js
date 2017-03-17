@@ -1,6 +1,6 @@
 loadAPI(1);
 
-host.defineController("Novation", "Launch Control", "1.0", "05e2b820-177e-11e4-8c21-0800200c9a66");
+host.defineController("Novation", "Launch Control", "1.0", "e84caa2f-01eb-406c-a044-7d99fffd0d55", "Netsu");
 host.defineMidiPorts(1, 1);
 host.addDeviceNameBasedDiscoveryPair(["Launch Control"], ["Launch Control"]);
 
@@ -119,6 +119,7 @@ var childrenCountObserver = function(channel)
 			childTrackCount[ch] = count;
 			for (var i = 0; i < count; i++)
 			{
+				println("countObs " + ch + " " + i);
 				var child_channel = childTracks[ch].getChannel(i);
 				childDevices[ch][i].selectFirstInChannel(child_channel);
 			}
