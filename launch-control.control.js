@@ -1,11 +1,11 @@
 loadAPI(1);
 
-host.defineController("Novation", "Launch Control", "1.0", "e84caa2f-01eb-406c-a044-7d99fffd0d55", "Netsu");
+host.defineController("Novation", "Launch Control - Netsu", "1.0", "e84caa2f-01eb-406c-a044-7d99fffd0d55", "Netsu");
 host.defineMidiPorts(1, 1);
 host.addDeviceNameBasedDiscoveryPair(["Launch Control"], ["Launch Control"]);
 
 //Load LaunchControl constants containing the status for pages and other constant variables
-load("LaunchControl_constants.js");
+load("launch-control.constants.js");
 
 var buttonMode = ButtonMode.STOP;
 
