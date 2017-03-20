@@ -88,23 +88,28 @@ function updatePads()
 {
     for (var i = 0; i < 8; i++)
     {
-		if (buttonMode == ButtonMode.STOP)
-		{
-			var state = playbackStates[i];
-			sendMidi(UserPagePads.Page1, ButtonReverseMap[i], PlaybackStateColour[state]);
-		}
-		else if (buttonMode == ButtonMode.MUTE)
-		{
-			sendMidi(UserPagePads.Page1, ButtonReverseMap[i], MuteColour[muteStates[i] ? 1 : 0]);
-		}
-		else if (buttonMode == ButtonMode.SOLO)
-		{
-			sendMidi(UserPagePads.Page1, ButtonReverseMap[i], SoloColour[soloStates[i] ? 1 : 0]);
-		}
+		updatePad(i);
 	}
 
 	sendMidi(SideButton.STATUS, SideButton.DOWN, SideButtonColour[buttonMode == ButtonMode.SOLO ? 1 : 0]);
 	sendMidi(SideButton.STATUS, SideButton.RIGHT, SideButtonColour[buttonMode == ButtonMode.MUTE ? 1 : 0]);
+}
+
+function updatePad(pad)
+{
+	if (buttonMode == ButtonMode.STOP)
+	{
+		var state = playbackStates[pad];
+		sendMidi(UserPagePads.Page1, ButtonReverseMap[pad], PlaybackStateColour[state]);
+	}
+	else if (buttonMode == ButtonMode.MUTE)
+	{
+		sendMidi(UserPagePads.Page1, ButtonReverseMap[pad], MuteColour[muteStates[pad] ? 1 : 0]);
+	}
+	else if (buttonMode == ButtonMode.SOLO)
+	{
+		sendMidi(UserPagePads.Page1, ButtonReverseMap[pad], SoloColour[soloStates[pad] ? 1 : 0]);
+	}
 }
 
 var childrenCountObserver = function(channel)
@@ -119,7 +124,7 @@ var childrenCountObserver = function(channel)
 			childTrackCount[ch] = count;
 			for (var i = 0; i < count; i++)
 			{
-				println("countObs " + ch + " " + i);
+				//println("countObs " + ch + " " + i);
 				var child_channel = childTracks[ch].getChannel(i);
 				childDevices[ch][i].selectFirstInChannel(child_channel);
 			}
@@ -149,11 +154,7 @@ var playbackObserver = function(channel)
 				playbackStates[ch] = PlaybackState.PLAYING;
 			}
 
-			var state = playbackStates[ch];
-			if (buttonMode == ButtonMode.STOP)
-			{
-				sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], PlaybackStateColour[state]);
-			}
+			updatePad(ch);
 		}
 };
 
@@ -227,17 +228,21 @@ function onMidi(status, data1, data2)
 	// User Preset 1 = pads function is mode dependent
 	if (status == UserPagePads.Page1)
     {
+		var ch = ButtonMap[data1];
 		if (buttonMode == ButtonMode.STOP)
 		{
-			trackBank.getChannel(ButtonMap[data1]).stop();
+			trackBank.getChannel(ch).stop();
+			// hack for groups that don't send stop info to observer
+			playbackStates[ch] = PlaybackState.STOPDUE;
+			updatePad(ch);
 		}
 		else if (buttonMode == ButtonMode.MUTE)
 		{
-			trackBank.getChannel(ButtonMap[data1]).getMute().toggle();
+			trackBank.getChannel(ch).getMute().toggle();
 		}
 		else if (buttonMode == ButtonMode.SOLO)
 		{
-			trackBank.getChannel(ButtonMap[data1]).getSolo().toggle(false);
+			trackBank.getChannel(ch).getSolo().toggle(false);
 		}
 	}
 
