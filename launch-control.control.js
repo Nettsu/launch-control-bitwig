@@ -233,8 +233,11 @@ function onMidi(status, data1, data2)
 		{
 			trackBank.getChannel(ch).stop();
 			// hack for groups that don't send stop info to observer
-			playbackStates[ch] = PlaybackState.STOPDUE;
-			updatePad(ch);
+			if (playbackStates[ch] == PlaybackState.PLAYING)
+			{
+				playbackStates[ch] = PlaybackState.STOPDUE;
+				updatePad(ch);
+			}
 		}
 		else if (buttonMode == ButtonMode.MUTE)
 		{
