@@ -3,8 +3,8 @@ var HIGHEST_CC = 48;
 
 var NUM_TRACKS = 8;
 var NUM_SENDS = 2;
-var NUM_SCENES = 32;
-var MAX_CHILD_TRACKS = 12;
+var NUM_SCENES = 64;
+var MAX_CHILD_TRACKS = 5;
 
 var Colour = // Novation are from the UK
 {

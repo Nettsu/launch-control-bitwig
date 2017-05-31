@@ -57,30 +57,32 @@ function init()
 
 	// create a trackbank (arguments are tracks, sends, scenes)
 	trackBank = host.createMasterTrack(0).createSiblingsTrackBank(NUM_TRACKS, NUM_SENDS, NUM_SCENES, false, false);
+	transport = host.createTransport();
 
 	var slotBanks = [];
 
 	for (var i = 0; i < NUM_TRACKS; i++)
 	{
-		childTracks[i] = trackBank.getTrack(i).createTrackBank(MAX_CHILD_TRACKS, 0, 0, false);
-		childTracks[i].addChannelCountObserver(childrenCountObserver(i));
-
-		slotBanks[i] = trackBank.getTrack(i).getClipLauncherSlots();
-		slotBanks[i].addPlaybackStateObserver(playbackObserver(i));
-
 		// create main device cursor for the track
-		deviceCursors[i] = trackBank.getTrack(i).createCursorDevice("Primary" + i);
+		//deviceCursors[i] = trackBank.getTrack(i).getPrimaryDevice();
+		deviceCursors[i] = trackBank.getChannel(i).createCursorDevice("Primary " + i);
 
 		// create child track cursors for the track, one for each potential child
 		var childDevicesArray = [];
 		for (var j = 0; j < MAX_CHILD_TRACKS; j++)
 		{
-			childDevicesArray[j] = trackBank.getTrack(i).createCursorDevice("Child" + i + ":" + j);
+			childDevicesArray[j] = trackBank.getChannel(i).createCursorDevice("Child " + i + ":" + j);
 		}
 		childDevices[i] = childDevicesArray;
 
-		trackBank.getTrack(i).getMute().addValueObserver(muteObserver(i));
-		trackBank.getTrack(i).getSolo().addValueObserver(soloObserver(i));
+		childTracks[i] = trackBank.getChannel(i).createTrackBank(MAX_CHILD_TRACKS, 0, 0, false);
+		childTracks[i].addChannelCountObserver(childrenCountObserver(i));
+
+		slotBanks[i] = trackBank.getChannel(i).getClipLauncherSlots();
+		slotBanks[i].addPlaybackStateObserver(playbackObserver(i));
+
+		trackBank.getChannel(i).getMute().addValueObserver(muteObserver(i));
+		trackBank.getChannel(i).getSolo().addValueObserver(soloObserver(i));
 	}
 }
 
@@ -91,12 +93,13 @@ function updatePads()
 		updatePad(i);
 	}
 
-	sendMidi(SideButton.STATUS, SideButton.DOWN, SideButtonColour[buttonMode == ButtonMode.SOLO ? 1 : 0]);
+	sendMidi(SideButton.STATUS, SideButton.LEFT, SideButtonColour[buttonMode == ButtonMode.SOLO ? 1 : 0]);
 	sendMidi(SideButton.STATUS, SideButton.RIGHT, SideButtonColour[buttonMode == ButtonMode.MUTE ? 1 : 0]);
 }
 
 function updatePad(pad)
 {
+	//println(pad);
 	if (buttonMode == ButtonMode.STOP)
 	{
 		var state = playbackStates[pad];
@@ -160,14 +163,13 @@ var playbackObserver = function(channel)
 
 var muteObserver = function(channel)
 {
-	println
     var ch = channel;
     return function (mute)
 		{
 			muteStates[ch] = mute;
 			if (buttonMode == ButtonMode.MUTE)
 			{
-				println(mute);
+				//println(mute);
 				sendMidi(UserPagePads.Page1, ButtonReverseMap[ch], MuteColour[mute ? 1 : 0]);
 			}
 		}
@@ -188,9 +190,8 @@ var soloObserver = function(channel)
 
 function processSideButtons(status, data1, data2)
 {
-	// User Preset 1, side buttons change mode
 	// Hold buttons for mute or solo mode, release to go back to stop mode
-	if (status == SideButton.STATUS && data1 == SideButton.RIGHT)
+	if (data1 == SideButton.RIGHT)
 	{
 		//println("mute mode\n");
 		if (data2 == 127)
@@ -203,7 +204,7 @@ function processSideButtons(status, data1, data2)
 		}
 		updatePads();
 	}
-	else if (status == SideButton.STATUS && data1 == SideButton.DOWN)
+	else if (data1 == SideButton.LEFT)
 	{
 		//println("solo mode\n");
 		if (data2 == 127)
@@ -216,6 +217,20 @@ function processSideButtons(status, data1, data2)
 		}
 		updatePads();
 	}
+	else if (data1 == SideButton.UP)
+	{
+		if (data2 == 127)
+		{
+			transport.getTempo().incRaw(1);
+		}
+	}
+	else if (data1 == SideButton.DOWN)
+	{
+		if (data2 == 127)
+		{
+			transport.getTempo().incRaw(-1);
+		}
+	}
 }
 
 function onMidi(status, data1, data2)
@@ -223,7 +238,10 @@ function onMidi(status, data1, data2)
 	//printMidi(status, data1, data2);
 	//println(MIDIChannel(status));
 
-	processSideButtons(status, data1, data2);
+	if (status == SideButton.STATUS)
+	{
+		processSideButtons(status, data1, data2);
+	}
 
 	// User Preset 1 = pads function is mode dependent
 	if (status == UserPagePads.Page1)
@@ -255,9 +273,13 @@ function onMidi(status, data1, data2)
 		var channelIdx = KnobMap[data1] % 8;
 		var macro = KnobMap[data1] / 8;
 
+		//println(childTrackCount[channelIdx]);
+
 		deviceCursors[channelIdx].getMacro(macro).getAmount().set(data2, 128);
 		for (var i = 0; i < childTrackCount[channelIdx]; i++)
 		{
+			var child_channel = childTracks[channelIdx].getChannel(i);
+			childDevices[channelIdx][i].selectFirstInChannel(child_channel);
 			childDevices[channelIdx][i].getMacro(macro).getAmount().set(data2, 128);
 		}
 	}
