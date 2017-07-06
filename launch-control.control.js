@@ -1,4 +1,4 @@
-loadAPI(1);
+loadAPI(2);
 
 host.defineController("Novation", "Launch Control - Netsu", "1.0", "e84caa2f-01eb-406c-a044-7d99fffd0d55", "Netsu");
 host.defineMidiPorts(1, 1);
@@ -45,10 +45,12 @@ var soloStates =
 	false
 ];
 
-var deviceCursors 	= [];
-var childTracks 	= [];
-var childTrackCount = [];
-var childDevices 	= [];
+var deviceCursors			= [];
+var controlPageCursors 		= [];
+var childTracks 			= [];
+var childTrackCount 		= [];
+var childDeviceCursors		= [];
+var childControlPageCursors	= [];
 
 function init()
 {
@@ -65,18 +67,23 @@ function init()
 	{
 		// create main device cursor for the track
 		//deviceCursors[i] = trackBank.getTrack(i).getPrimaryDevice();
-		deviceCursors[i] = trackBank.getChannel(i).createCursorDevice("Primary " + i);
-
-		// create child track cursors for the track, one for each potential child
-		var childDevicesArray = [];
-		for (var j = 0; j < MAX_CHILD_TRACKS; j++)
-		{
-			childDevicesArray[j] = trackBank.getChannel(i).createCursorDevice("Child " + i + ":" + j);
-		}
-		childDevices[i] = childDevicesArray;
+		deviceCursors[i] = trackBank.getChannel(i).createDeviceBank(1);
+		controlPageCursors[i] = deviceCursors[i].getDevice(0).createCursorRemoteControlsPage(2);
 
 		childTracks[i] = trackBank.getChannel(i).createTrackBank(MAX_CHILD_TRACKS, 0, 0, false);
 		childTracks[i].addChannelCountObserver(childrenCountObserver(i));
+
+		// create child track cursors for the track, one for each potential child
+		var childDeviceCursorsArray = [];
+		var childControlPageCursorsArray = [];
+		for (var j = 0; j < MAX_CHILD_TRACKS; j++)
+		{
+			childDeviceCursorsArray[j] = childTracks[i].getChannel(j).createDeviceBank(1);
+			//childDeviceCursorsArray[j] = childTracks[i].getChannel(j).createCursorDevice("LaunchControl track " + i + ":" + j);
+			childControlPageCursorsArray[j] = childDeviceCursorsArray[j].getDevice(0).createCursorRemoteControlsPage(2);
+		}
+		childDeviceCursors[i] = childDeviceCursorsArray;
+		childControlPageCursors[i] = childControlPageCursorsArray;
 
 		slotBanks[i] = trackBank.getChannel(i).getClipLauncherSlots();
 		slotBanks[i].addPlaybackStateObserver(playbackObserver(i));
@@ -125,12 +132,6 @@ var childrenCountObserver = function(channel)
 				count = MAX_CHILD_TRACKS;
 			}
 			childTrackCount[ch] = count;
-			for (var i = 0; i < count; i++)
-			{
-				//println("countObs " + ch + " " + i);
-				var child_channel = childTracks[ch].getChannel(i);
-				childDevices[ch][i].selectFirstInChannel(child_channel);
-			}
 		}
 };
 
@@ -275,12 +276,13 @@ function onMidi(status, data1, data2)
 
 		//println(childTrackCount[channelIdx]);
 
-		deviceCursors[channelIdx].getMacro(macro).getAmount().set(data2, 128);
+		deviceCursors[channelIdx].scrollTo(0);
+		controlPageCursors[channelIdx].getParameter(macro).set(data2, 128);
 		for (var i = 0; i < childTrackCount[channelIdx]; i++)
 		{
-			var child_channel = childTracks[channelIdx].getChannel(i);
-			childDevices[channelIdx][i].selectFirstInChannel(child_channel);
-			childDevices[channelIdx][i].getMacro(macro).getAmount().set(data2, 128);
+			//childDeviceCursors[channelIdx][i].selectFirstInChannel(childDeviceCursors[channelIdx][i].getChannel());
+			childDeviceCursors[channelIdx][i].scrollTo(0);
+			childControlPageCursors[channelIdx][i].getParameter(macro).set(data2, 128);
 		}
 	}
 }
