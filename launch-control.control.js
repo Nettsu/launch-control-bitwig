@@ -1,6 +1,6 @@
 loadAPI(2);
 
-host.defineController("Novation", "Launch Control - Netsu", "1.0", "e84caa2f-01eb-406c-a044-7d99fffd0d55", "Netsu");
+host.defineController("Novation", "Launch Control", "1.0", "e84caa2f-01eb-406c-a044-7d99fffd0d55", "Netsu");
 host.defineMidiPorts(1, 1);
 host.addDeviceNameBasedDiscoveryPair(["Launch Control"], ["Launch Control"]);
 
@@ -244,8 +244,8 @@ function onMidi(status, data1, data2)
 		processSideButtons(status, data1, data2);
 	}
 
-	// User Preset 1 = pads function is mode dependent
-	if (status == UserPagePads.Page1)
+	// pads function is mode dependent
+	if (status == UserPagePads.Page1 || status == UserPagePads.Page2)
     {
 		var ch = ButtonMap[data1];
 		if (buttonMode == ButtonMode.STOP)
@@ -280,10 +280,17 @@ function onMidi(status, data1, data2)
 		controlPageCursors[channelIdx].getParameter(macro).set(data2, 128);
 		for (var i = 0; i < childTrackCount[channelIdx]; i++)
 		{
-			//childDeviceCursors[channelIdx][i].selectFirstInChannel(childDeviceCursors[channelIdx][i].getChannel());
 			childDeviceCursors[channelIdx][i].scrollTo(0);
 			childControlPageCursors[channelIdx][i].getParameter(macro).set(data2, 128);
 		}
+	}
+	// Page two control first two sends
+	if (status == UserPageKnobs.Page2 && KnobMap[data1] >= 0 && KnobMap[data1] <= 15)
+	{
+		var channelIdx = KnobMap[data1] % 8;
+		var send = KnobMap[data1] / 8;
+
+		trackBank.getChannel(channelIdx).sendBank().getItemAt(send).set(data2, 128);
 	}
 }
 
