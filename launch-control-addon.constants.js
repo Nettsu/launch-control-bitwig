@@ -2,9 +2,8 @@ var LOWEST_CC = 21;
 var HIGHEST_CC = 48;
 
 var NUM_TRACKS = 8;
-var NUM_SENDS = 2;
-var NUM_SCENES = 64;
-var MAX_CHILD_TRACKS = 5;
+var NUM_SENDS = 1;
+var NUM_SCENES = 1;
 
 var Colour = // Novation are from the UK
 {
@@ -35,10 +34,10 @@ var PlaybackState =
 
 var PlaybackStateColour	=
 [
-	Colour.GREEN_FULL,
 	Colour.YELLOW_FULL,
-	Colour.OFF,
-	Colour.GREEN_LOW
+	Colour.GREEN_LOW,
+	Colour.YELLOW_LOW,
+	Colour.GREEN_FULL
 ];
 
 var MuteColour =
