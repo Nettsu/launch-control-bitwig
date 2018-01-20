@@ -197,12 +197,12 @@ function onMidi(status, data1, data2)
 		var channelIdx = KnobMap[data1] % 8;
 		if (data2 == 0) data2 = 1;
 		
-		sendValue = trackBank.getChannel(channelIdx).sendBank().getItemAt(0).get();
-		if (Math.abs(data2 - sendValue*127) < 10)
-			isTakenOver[channelIdx] = true;
+		//sendValue = trackBank.getChannel(channelIdx).sendBank().getItemAt(0).get();
+		//if (Math.abs(data2 - sendValue*127) < 10)
+		//	isTakenOver[channelIdx] = true;
 		
-		if (isTakenOver[channelIdx])
-			trackBank.getChannel(channelIdx).sendBank().getItemAt(0).set(data2, 128);		
+		//if (isTakenOver[channelIdx])
+		 	trackBank.getChannel(channelIdx).sendBank().getItemAt(0).set(data2, 128);		
 	}
 }
 
