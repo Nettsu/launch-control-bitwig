@@ -61,10 +61,17 @@ function init()
 		slotBanks[i] = trackBank.getChannel(i).getClipLauncherSlots();
 		trackBank.getChannel(i).sendBank().getItemAt(0).setIndication(true);
 		trackBank.getChannel(i).sendBank().getItemAt(0).markInterested();
-		slotBanks[i].addPlaybackStateObserver(playbackObserver(i));
-		slotBanks[i].addHasContentObserver(hasContentObserver(i));
 		slotBanks[i].setIndication(true);
 	}
+	
+	sendMidi(UserPagePads.Page1, ButtonReverseMap[0], Colour.RED_FULL);
+	sendMidi(UserPagePads.Page1, ButtonReverseMap[1], Colour.ORANGE);
+	sendMidi(UserPagePads.Page1, ButtonReverseMap[2], Colour.YELLOW_FULL);
+	sendMidi(UserPagePads.Page1, ButtonReverseMap[3], Colour.GREEN_FULL);
+	sendMidi(UserPagePads.Page1, ButtonReverseMap[4], Colour.OFF);
+	sendMidi(UserPagePads.Page1, ButtonReverseMap[5], Colour.OFF);
+	sendMidi(UserPagePads.Page1, ButtonReverseMap[6], Colour.OFF);
+	sendMidi(UserPagePads.Page1, ButtonReverseMap[7], Colour.OFF);
 	
 	updatePads();
 }
@@ -76,7 +83,7 @@ var hasContentObserver = function(channel)
 		{
 			//println(hasContent);
 			clipHasContent[ch] = hasContent;
-			updatePad(ch);
+			//updatePad(ch);
 		}
 };
 
@@ -84,7 +91,7 @@ function updatePads()
 {
     for (var i = 0; i < 8; i++)
     {
-		updatePad(i);
+		//updatePad(i);
 	}
 }
 
